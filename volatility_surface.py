@@ -17,6 +17,7 @@ import sina_op_api
 
 COLORS = ['blue', 'yellow', 'lime', 'red', 'purple', 'slategray', 'tomato', 'orange', 'darkred', 'aqua']
 global_lines = [[], [], [], []]
+ELEV = 30
 
 
 def requests_get(all_codes):
@@ -97,13 +98,19 @@ def fit(up_x, up_y, down_x, down_y):
 
 
 def update(up, down, all_codes, x, y, yy, surf1, ax1, surf2, ax2, axs):
+    azim = 15
     while True:
         sleep(3)  # 每隔3秒刷新一次
         up_x, up_y, up_vega, down_x, down_y, down_vega = get_data(up, down, all_codes)
         xx, up_y2, down_y2 = fit(up_x, up_y, down_x, down_y)
         surf1.remove()
+        azim += 15
+        if azim > 360:
+            azim = 0
+        ax1.view_init(ELEV, azim)
         surf1 = ax1.plot_surface(x, y, array(up_y2) * 100.0, rstride=1, cstride=1, cmap='rainbow')
         surf2.remove()
+        ax2.view_init(ELEV, azim)
         surf2 = ax2.plot_surface(x, y, array(down_y2) * 100.0, rstride=1, cstride=1, cmap='rainbow')
         for i in yy:
             axs[0].lines.remove(global_lines[0][i])
@@ -131,6 +138,7 @@ def main():
     fig = plt.figure(figsize=(13, 4.5))
     gs = gridspec.GridSpec(2, 6, figure=fig)
     ax1 = fig.add_subplot(gs[:, :2], projection='3d')
+    ax1.view_init(ELEV, 0)
     surf1 = ax1.plot_surface(x, y, array(up_y2) * 100.0, rstride=1, cstride=1, cmap='rainbow')
     ax1.set_yticklabels(dates_label)
     ax1.set_xlabel('strike price')
@@ -155,6 +163,7 @@ def main():
     ax.legend(dates, fontsize='xx-small')
     # ----------------------------------------------------------------------
     ax2 = fig.add_subplot(gs[:, 3:5], projection='3d')
+    ax2.view_init(ELEV, 0)
     surf2 = ax2.plot_surface(x, y, array(down_y2) * 100.0, rstride=1, cstride=1, cmap='rainbow')
     ax2.set_yticklabels(dates_label)
     ax2.set_xlabel('strike price')
