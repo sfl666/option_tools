@@ -5,4 +5,4 @@
 用拟合值填补空缺。
 
 效果图
-![效果图](https://github.com/sfl666/50ETF_option/blob/master/show.jpeg)
+![效果图](https://github.com/sfl666/50ETF_option/blob/master/show.png)
