@@ -144,7 +144,7 @@ def main():
     xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
     yy = list(range(len(call_y2)))
     x, y = meshgrid(xx, yy)
-    fig = plt.figure(figsize=(12, 5.8))
+    fig = plt.figure(figsize=(12, 5.7))
     gs = gridspec.GridSpec(3, 6, figure=fig)
     ylabels = ['Delta', 'Gamma', 'Theta', 'Vega', 'Implied Volatility']
     call_gs = [gs[2:3, :1], gs[2:3, 1:2], gs[2:3, 2:3], gs[1:2, 2:3], gs[:1, 2:3]]
