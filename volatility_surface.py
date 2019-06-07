@@ -120,10 +120,12 @@ def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_i
         if azim > 360:
             azim = 0
         ax_iv_sf_call.view_init(ELEV, azim)
-        surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+        # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+        surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
         surf_put.remove()
         ax_iv_sf_put.view_init(ELEV, azim)
-        surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
+        # surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
+        surf_put = ax_iv_sf_put.plot_wireframe(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
         for index in range(5):
             for i in yy:
                 global_ax_lines_call[index]['ax'].lines.remove(global_ax_lines_call[index]['lines'][i])
@@ -169,7 +171,8 @@ def main():
         global_ax_lines_put[index]['ax'] = put_ax
     ax_iv_sf_call = fig.add_subplot(gs[:2, :2], projection='3d')
     ax_iv_sf_call.view_init(ELEV, 0)
-    surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+    # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+    surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
     ax_iv_sf_call.set_yticklabels(dates_label)
     ax_iv_sf_call.set_xlabel('Strike Price')
     ax_iv_sf_call.set_ylabel('Expiration Date')
@@ -177,7 +180,8 @@ def main():
     ax_iv_sf_call.set_title('Call Option')
     ax_iv_sf_put = fig.add_subplot(gs[:2, 3:5], projection='3d')
     ax_iv_sf_put.view_init(ELEV, 0)
-    surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
+    # surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
+    surf_put = ax_iv_sf_put.plot_wireframe(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
     ax_iv_sf_put.set_yticklabels(dates_label)
     ax_iv_sf_put.set_xlabel('Strike Price')
     ax_iv_sf_put.set_ylabel('Expiration Date')
