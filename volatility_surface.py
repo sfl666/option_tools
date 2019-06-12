@@ -101,11 +101,15 @@ def fit(call_x, call_y, put_x, put_y):
         if xx == call_x[i]:
             call_y2.append(call_y[i])
         else:
-            call_y2.append(polyval(polyfit(call_x[i], call_y[i], 2), xx))
+            tmp = polyval(polyfit(call_x[i], call_y[i], 2), xx)
+            tmp[tmp < 0.0] = 0.0
+            call_y2.append(tmp)
         if xx == put_x[i]:
             put_y2.append(put_y[i])
         else:
-            put_y2.append(polyval(polyfit(put_x[i], put_y[i], 2), xx))
+            tmp = polyval(polyfit(put_x[i], put_y[i], 2), xx)
+            tmp[tmp < 0.0] = 0.0
+            put_y2.append(tmp)
     return xx, call_y2, put_y2
 
 
