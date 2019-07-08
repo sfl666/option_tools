@@ -5,7 +5,7 @@ Email: shifulin666@qq.com
 # python3
 
 from time import sleep
-from threading import Thread
+from threading import Thread, Lock
 
 from requests import get, exceptions
 from numpy import polyfit, polyval, meshgrid, array
@@ -18,6 +18,7 @@ import sina_op_api
 COLORS = ['blue', 'yellow', 'lime', 'red', 'purple', 'slategray', 'tomato', 'orange', 'darkred', 'aqua']
 global_ax_lines_call = [{'ax': None, 'lines': []} for _ in range(5)]
 global_ax_lines_put = [{'ax': None, 'lines': []} for _ in range(5)]
+update_picture_lock = Lock()
 ELEV = 30
 
 
@@ -91,6 +92,13 @@ def get_data(call, put, all_codes):
         put_strike_price, [put_delta, put_gamma, put_theta, put_vega, put_implied_volatility]
 
 
+def knockout_small_value(x, y):
+    length = len(x)
+    new_x = [x[i] for i in range(length) if y[i] > 0.01]
+    new_y = [i for i in y if i > 0.01]
+    return new_x, new_y
+
+
 def fit(call_x, call_y, put_x, put_y):
     xx = set()
     for i in call_x:
@@ -101,15 +109,31 @@ def fit(call_x, call_y, put_x, put_y):
         if xx == call_x[i]:
             call_y2.append(call_y[i])
         else:
-            tmp = polyval(polyfit(call_x[i], call_y[i], 2), xx)
+            new_x, new_y = knockout_small_value(call_x[i], call_y[i])
+            tmp = polyval(polyfit(new_x, new_y, 2), xx)
             tmp[tmp < 0.0] = 0.0
-            call_y2.append(tmp)
+            tmp_y, index_y = [], 0
+            for index, j in enumerate(xx):
+                if j in call_x[i]:
+                    tmp_y.append(call_y[i][index_y])
+                    index_y += 1
+                else:
+                    tmp_y.append(tmp[index])
+            call_y2.append(tmp_y)
         if xx == put_x[i]:
             put_y2.append(put_y[i])
         else:
-            tmp = polyval(polyfit(put_x[i], put_y[i], 2), xx)
+            new_x, new_y = knockout_small_value(put_x[i], put_y[i])
+            tmp = polyval(polyfit(new_x, new_y, 2), xx)
             tmp[tmp < 0.0] = 0.0
-            put_y2.append(tmp)
+            tmp_y, index_y = [], 0
+            for index, j in enumerate(xx):
+                if j in put_x[i]:
+                    tmp_y.append(put_y[i][index_y])
+                    index_y += 1
+                else:
+                    tmp_y.append(tmp[index])
+            put_y2.append(tmp_y)
     return xx, call_y2, put_y2
 
 
@@ -117,30 +141,31 @@ def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_i
     azim = 15
     while True:
         sleep(3)  # 每隔3秒刷新一次
-        call_x, call_ys, put_x, put_ys = get_data(call_codes, put_codes, all_codes)
-        xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
-        surf_call.remove()
-        azim += 15
-        if azim > 360:
-            azim = 0
-        ax_iv_sf_call.view_init(ELEV, azim)
-        # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
-        surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
-        surf_put.remove()
-        ax_iv_sf_put.view_init(ELEV, azim)
-        # surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
-        surf_put = ax_iv_sf_put.plot_wireframe(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
-        for index in range(5):
-            for i in yy:
-                global_ax_lines_call[index]['ax'].lines.remove(global_ax_lines_call[index]['lines'][i])
-                global_ax_lines_put[index]['ax'].lines.remove(global_ax_lines_put[index]['lines'][i])
-            global_ax_lines_call[index]['lines'] = []
-            global_ax_lines_put[index]['lines'] = []
-        for index in range(5):
-            for i in yy:
-                global_ax_lines_call[index]['lines'].append(global_ax_lines_call[index]['ax'].plot(call_x[i], array(call_ys[index][i]), COLORS[i])[0])
-                global_ax_lines_put[index]['lines'].append(global_ax_lines_put[index]['ax'].plot(put_x[i], array(put_ys[index][i]), COLORS[i])[0])
-        plt.draw()
+        with update_picture_lock:
+            call_x, call_ys, put_x, put_ys = get_data(call_codes, put_codes, all_codes)
+            xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
+            surf_call.remove()
+            azim += 15
+            if azim > 360:
+                azim = 0
+            ax_iv_sf_call.view_init(ELEV, azim)
+            # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+            surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+            surf_put.remove()
+            ax_iv_sf_put.view_init(ELEV, azim)
+            # surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
+            surf_put = ax_iv_sf_put.plot_wireframe(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
+            for index in range(5):
+                for i in yy:
+                    global_ax_lines_call[index]['ax'].lines.remove(global_ax_lines_call[index]['lines'][i])
+                    global_ax_lines_put[index]['ax'].lines.remove(global_ax_lines_put[index]['lines'][i])
+                global_ax_lines_call[index]['lines'] = []
+                global_ax_lines_put[index]['lines'] = []
+            for index in range(5):
+                for i in yy:
+                    global_ax_lines_call[index]['lines'].append(global_ax_lines_call[index]['ax'].plot(call_x[i], array(call_ys[index][i]), COLORS[i])[0])
+                    global_ax_lines_put[index]['lines'].append(global_ax_lines_put[index]['ax'].plot(put_x[i], array(put_ys[index][i]), COLORS[i])[0])
+            plt.draw()
 
 
 def main():
@@ -151,6 +176,8 @@ def main():
     yy = list(range(len(call_y2)))
     x, y = meshgrid(xx, yy)
     fig = plt.figure(figsize=(12, 5.7))
+    fig.canvas.mpl_connect('button_press_event', lambda event: update_picture_lock.acquire())
+    fig.canvas.mpl_connect('button_release_event', lambda event: update_picture_lock.release())
     gs = gridspec.GridSpec(3, 6, figure=fig)
     ylabels = ['Delta', 'Gamma', 'Theta', 'Vega', 'Implied Volatility']
     call_gs = [gs[2:3, :1], gs[2:3, 1:2], gs[2:3, 2:3], gs[1:2, 2:3], gs[:1, 2:3]]
