@@ -13,9 +13,13 @@ def get_op_dates():
 
 
 def get_op_expire_day(date):
-    url = "http://stock.finance.sina.com.cn/futures/api/openapi.php/StockOptionService.getRemainderDay?" \
-          "exchange=上交所&cate=XD50ETF&date={year}-{month}".format(year=date[:4], month=date[4:])
+    url0 = "http://stock.finance.sina.com.cn/futures/api/openapi.php/StockOptionService.getRemainderDay?" \
+          "exchange=上交所&cate={xd}50ETF&date={year}-{month}"
+    url = url0.format(year=date[:4], month=date[4:], xd='')
     data = get(url.format(date=date)).json()['result']['data']
+    if int(data['remainderDays']) < 0:
+        url = url0.format(year=date[:4], month=date[4:], xd='XD')
+        data = get(url.format(date=date)).json()['result']['data']
     return data['expireDay'], int(data['remainderDays'])
 
 
@@ -67,11 +71,14 @@ if __name__ == '__main__':
     print('期权合约月份：{}'.format(dates))
     for date in dates:
         print('期权月份{}：到期日{} 剩余天数{}'.format(date, *get_op_expire_day(date)))
+    demo_code = '10001851'
     for date in dates:
-        print('期权月份{}\n\t看涨期权代码：{}\n\t看跌期权代码：{}'.format(date, *get_op_codes(date)))
-    for index, i in enumerate(get_op_price('10001851')):
-        print('期权10001851', index, *i)
+        call_codes, put_codes = get_op_codes(date)
+        print('期权月份{}\n\t看涨期权代码：{}\n\t看跌期权代码：{}'.format(date, call_codes, put_codes))
+        demo_code = call_codes[0]
+    for index, i in enumerate(get_op_price(demo_code)):
+        print('期权' + demo_code, index, *i)
     for index, i in enumerate(get_50etf_price()):
         print('50ETF', index, *i)
-    for index, i in enumerate(get_op_greek_alphabet('10001851')):
-        print('期权10001851', index, *i)
+    for index, i in enumerate(get_op_greek_alphabet(demo_code)):
+        print('期权' + demo_code, index, *i)
