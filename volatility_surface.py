@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
-import sina_op_api
+import sina_etf_option_api
 
 COLORS = ['blue', 'yellow', 'lime', 'red', 'purple', 'slategray', 'tomato', 'orange', 'darkred', 'aqua']
 global_ax_lines_call = [{'ax': None, 'lines': []} for _ in range(5)]
@@ -35,27 +35,30 @@ def requests_get(all_codes):
     return [i.split(',') for i in data]
 
 
-def get_codes():
+def get_codes(cate, exchange, underlying, dividend):
     while True:
         try:
-            dates = sorted(sina_op_api.get_op_dates())
+            dates = sorted(sina_etf_option_api.get_option_dates(cate=cate, exchange=exchange))
             call, put = [], []
             for date in dates:
-                call_codes, put_codes = sina_op_api.get_op_codes(date)
+                call_codes, put_codes = sina_etf_option_api.get_option_codes(date, underlying=underlying)
                 call.append(['CON_SO_' + i for i in call_codes])
                 put.append(['CON_SO_' + i for i in put_codes])
             all_codes = ','.join([','.join(i) for i in call] + [','.join(i) for i in put])
             data = requests_get(all_codes)
-            not_a_codes = [i[0][11:26] for i in data if not i[0].endswith('A')]  # 不考虑分红的
+            if dividend:
+                codes_tmp = [i[0][11:26] for i in data]  # 考虑分红
+            else:
+                codes_tmp = [i[0][11:26] for i in data if not i[0].endswith('A')]  # 不考虑分红
             for i in range(len(call)):
-                call[i] = [j for j in call[i] if j in not_a_codes]
-                put[i] = [j for j in put[i] if j in not_a_codes]
+                call[i] = [j for j in call[i] if j in codes_tmp]
+                put[i] = [j for j in put[i] if j in codes_tmp]
             break
         except (exceptions.ConnectionError, exceptions.ConnectTimeout) as e:
             print('连接出错，10秒后重试')
             print(e)
             sleep(10)
-    return call, put, ','.join(not_a_codes), dates
+    return call, put, ','.join(codes_tmp), dates
 
 
 def get_data(call, put, all_codes):
@@ -140,7 +143,7 @@ def fit(call_x, call_y, put_x, put_y):
 def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_iv_sf_call, ax_iv_sf_put):
     azim = 15
     while True:
-        sleep(3)  # 每隔3秒刷新一次
+        sleep(5)  # 每隔5秒刷新一次
         with update_picture_lock:
             call_x, call_ys, put_x, put_ys = get_data(call_codes, put_codes, all_codes)
             xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
@@ -150,11 +153,11 @@ def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_i
                 azim = 0
             ax_iv_sf_call.view_init(ELEV, azim)
             # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
-            surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+            surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1)
             surf_put.remove()
             ax_iv_sf_put.view_init(ELEV, azim)
             # surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
-            surf_put = ax_iv_sf_put.plot_wireframe(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
+            surf_put = ax_iv_sf_put.plot_wireframe(x, y, array(put_y2), rstride=1, cstride=1)
             for index in range(5):
                 for i in yy:
                     global_ax_lines_call[index]['ax'].lines.remove(global_ax_lines_call[index]['lines'][i])
@@ -168,8 +171,8 @@ def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_i
             plt.draw()
 
 
-def main():
-    call_codes, put_codes, all_codes, dates = get_codes()
+def main(cate, exchange, underlying, dividend=True):
+    call_codes, put_codes, all_codes, dates = get_codes(cate, exchange, underlying, dividend)
     dates_label = ',,'.join(dates).split(',')
     call_x, call_ys, put_x, put_ys = get_data(call_codes, put_codes, all_codes)
     xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
@@ -226,4 +229,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # category = '50ETF'
+    # underlying_security = '510050'
+    category = '300ETF'
+    underlying_security = '510300'
+    main(cate=category, exchange='null', underlying=underlying_security, dividend=True)
