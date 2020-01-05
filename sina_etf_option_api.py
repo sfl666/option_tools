@@ -2,7 +2,6 @@
 Author: shifulin
 Email: shifulin666@qq.com
 """
-# python3
 from json import loads
 from requests import get
 
