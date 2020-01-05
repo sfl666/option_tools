@@ -143,7 +143,8 @@ def fit(call_x, call_y, put_x, put_y):
 def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_iv_sf_call, ax_iv_sf_put):
     azim = 15
     while True:
-        sleep(5)  # 每隔5秒刷新一次
+        # sleep(5)  # 每隔5秒刷新一次
+        sleep(10)
         with update_picture_lock:
             call_x, call_ys, put_x, put_ys = get_data(call_codes, put_codes, all_codes)
             xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
