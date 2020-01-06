@@ -20,6 +20,7 @@ global_ax_lines_call = [{'ax': None, 'lines': []} for _ in range(5)]
 global_ax_lines_put = [{'ax': None, 'lines': []} for _ in range(5)]
 update_picture_lock = Lock()
 ELEV = 30
+AZIM = 120
 
 
 def requests_get(all_codes):
@@ -141,7 +142,7 @@ def fit(call_x, call_y, put_x, put_y):
 
 
 def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_iv_sf_call, ax_iv_sf_put):
-    azim = 15
+    azim = AZIM
     while True:
         # sleep(5)  # 每隔5秒刷新一次
         sleep(10)
@@ -151,7 +152,7 @@ def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_i
             surf_call.remove()
             azim += 15
             if azim > 360:
-                azim = 0
+                azim -= 360
             ax_iv_sf_call.view_init(ELEV, azim)
             # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
             surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1)
@@ -205,7 +206,7 @@ def main(cate, exchange, underlying, dividend=True):
         put_ax.legend(dates, fontsize='xx-small')
         global_ax_lines_put[index]['ax'] = put_ax
     ax_iv_sf_call = fig.add_subplot(gs[:2, :2], projection='3d')
-    ax_iv_sf_call.view_init(ELEV, 0)
+    ax_iv_sf_call.view_init(ELEV, AZIM)
     # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
     surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
     ax_iv_sf_call.set_yticklabels(dates_label)
@@ -214,7 +215,7 @@ def main(cate, exchange, underlying, dividend=True):
     ax_iv_sf_call.set_zlabel('Implied Volatility')
     ax_iv_sf_call.set_title('Call Option')
     ax_iv_sf_put = fig.add_subplot(gs[:2, 3:5], projection='3d')
-    ax_iv_sf_put.view_init(ELEV, 0)
+    ax_iv_sf_put.view_init(ELEV, AZIM)
     # surf_put = ax_iv_sf_put.plot_surface(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
     surf_put = ax_iv_sf_put.plot_wireframe(x, y, array(put_y2), rstride=1, cstride=1, cmap='rainbow')
     ax_iv_sf_put.set_yticklabels(dates_label)
@@ -230,8 +231,8 @@ def main(cate, exchange, underlying, dividend=True):
 
 
 if __name__ == '__main__':
-    # category = '50ETF'
-    # underlying_security = '510050'
-    category = '300ETF'
-    underlying_security = '510300'
-    main(cate=category, exchange='null', underlying=underlying_security, dividend=True)
+    category = '50ETF'
+    underlying_security = '510050'
+    # category = '300ETF'
+    # underlying_security = '510300'
+    main(cate=category, exchange='null', underlying=underlying_security, dividend=False)

@@ -6,6 +6,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from sina_stock_kline_api import get_stock_day_kline, get_ex_data
+from sina_future_kline_api import get_future_day_kline
 
 
 ETF_SPOT_MAP = {
@@ -53,6 +54,21 @@ def get_stock_data(code):
     return x, y
 
 
+def get_future_data(code):
+    x, y = [], []
+    kline = get_future_day_kline(code)
+    if kline:
+        last_close = float(kline[0]['c'])
+        for k in kline[1:]:
+            x.append(int(''.join(k['d'].split('-'))))
+            close = float(k['c'])
+            y.append(math.log(close / last_close))
+            last_close = close
+    # print(x)
+    # print(y)
+    return x, y
+
+
 def cal_historical_volatility(y, window_size):
     y2 = y[::-1]
     hv_lines, hv_cone = [], []
@@ -64,7 +80,7 @@ def cal_historical_volatility(y, window_size):
     return hv_lines, hv_cone
 
 
-def main(code, window_size=(5, 15, 30, 50, 70, 90, 120, 150)):
+def main(code, security_type='stock', window_size=(5, 15, 30, 50, 70, 90, 120, 150)):
     # import pickle, os
     # if os.path.isfile('cache'):
     #     with open('cache', 'rb') as fp:
@@ -80,7 +96,14 @@ def main(code, window_size=(5, 15, 30, 50, 70, 90, 120, 150)):
     #         pickle.dump(y, fp)
     #         pickle.dump(hv_lines, fp)
     #         pickle.dump(hv_cone, fp)
-    x, y = get_stock_data(code)
+    if security_type == 'stock':
+        x, y = get_stock_data(code)
+        interval = 100
+    elif security_type == 'future':
+        x, y = get_future_data(code)
+        interval = 10
+    else:
+        return
     hv_lines, hv_cone = cal_historical_volatility(y, window_size)
     x_int = list(range(len(x)))
     len_window = len(window_size)
@@ -105,8 +128,8 @@ def main(code, window_size=(5, 15, 30, 50, 70, 90, 120, 150)):
     x_hv = x_int[-len(hv_lines[0]):]
     axs2[1].set_xlim((min(x_hv), max(x_hv)))
     axs2[1].legend([str(i) for i in window_size])
-    xticks = x[-len(hv_lines[0]):][::-100][::-1]
-    xticks_index = x_hv[::-100][::-1]
+    xticks = x[-len(hv_lines[0]):][::-interval][::-1]
+    xticks_index = x_hv[::-interval][::-1]
     axs2[1].set_xticks(xticks_index)
     axs2[1].set_xticklabels([str(i) for i in xticks], rotation=60)
     axs2[1].set_ylabel('historical volatility(%)')
@@ -116,6 +139,6 @@ def main(code, window_size=(5, 15, 30, 50, 70, 90, 120, 150)):
 
 
 if __name__ == '__main__':
-    main('sz159919')
-
+    # main('sz159919')
+    main('M2005', security_type='future', window_size=(5, 15, 30, 50, 90, 120))
 

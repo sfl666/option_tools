@@ -65,7 +65,7 @@ def get_000300_price():
     return requests.get(URL_000300).content.split(b'"')[1].decode('gbk').split(',')
 
 
-def test():
+def my_test():
     header = ['买量', '买价', '最新价', '卖价', '卖量', '持仓量', '涨跌(%)', '行权价', '代码']
     up, down = get_t_quotation('io2002')
     for i in up + down:
@@ -101,6 +101,6 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    my_test()
 
 

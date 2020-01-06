@@ -26,7 +26,7 @@ def get_option_expire_day(date, cate='50ETF', exchange='null'):
 
 def get_option_codes(date, underlying='510050'):
     url_up = ''.join(["http://hq.sinajs.cn/list=OP_UP_", underlying, str(date)[-4:]])
-    url_down = ''.join(["http://hq.sinajs.cn/list=OP_UP_", underlying, str(date)[-4:]])
+    url_down = ''.join(["http://hq.sinajs.cn/list=OP_DOWN_", underlying, str(date)[-4:]])
     data_up = str(get(url_up).content).replace('"', ',').split(',')
     codes_up = [i[7:] for i in data_up if i.startswith('CON_OP_')]
     data_down = str(get(url_down).content).replace('"', ',').split(',')
@@ -83,7 +83,7 @@ def get_option_day_kline(code):
     return data
 
 
-def test():
+def my_test():
     dates = get_option_dates(cate='300ETF')
     print('期权合约月份：{}'.format(dates))
     for date in dates:
@@ -108,4 +108,4 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    my_test()
