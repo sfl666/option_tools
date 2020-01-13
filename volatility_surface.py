@@ -8,7 +8,7 @@ from time import sleep
 from threading import Thread, Lock
 
 from requests import get, exceptions
-from numpy import polyfit, polyval, meshgrid, array
+from numpy import polyfit, polyval, meshgrid, array, nan
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
@@ -141,14 +141,49 @@ def fit(call_x, call_y, put_x, put_y):
     return xx, call_y2, put_y2
 
 
-def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_iv_sf_call, ax_iv_sf_put):
+def not_fit(call_x, call_y, put_x, put_y):
+    xx = set()
+    for i in call_x:
+        xx |= set(i)
+    xx = sorted(xx)
+    call_y2, put_y2 = [], []
+    for i in range(len(call_x)):
+        if xx == call_x[i]:
+            call_y2.append(call_y[i])
+        else:
+            tmp_y, index_y = [], 0
+            for index, j in enumerate(xx):
+                if j in call_x[i]:
+                    tmp_y.append(call_y[i][index_y])
+                    index_y += 1
+                else:
+                    tmp_y.append(nan)
+            call_y2.append(tmp_y)
+        if xx == put_x[i]:
+            put_y2.append(put_y[i])
+        else:
+            tmp_y, index_y = [], 0
+            for index, j in enumerate(xx):
+                if j in put_x[i]:
+                    tmp_y.append(put_y[i][index_y])
+                    index_y += 1
+                else:
+                    tmp_y.append(nan)
+            put_y2.append(tmp_y)
+    return xx, call_y2, put_y2
+
+
+def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_iv_sf_call, ax_iv_sf_put, is_fit):
     azim = AZIM
     while True:
         # sleep(5)  # 每隔5秒刷新一次
         sleep(10)
         with update_picture_lock:
             call_x, call_ys, put_x, put_ys = get_data(call_codes, put_codes, all_codes)
-            xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
+            if is_fit:
+                xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
+            else:
+                xx, call_y2, put_y2 = not_fit(call_x, call_ys[-1], put_x, put_ys[-1])
             surf_call.remove()
             azim += 15
             if azim > 360:
@@ -173,11 +208,14 @@ def update(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_i
             plt.draw()
 
 
-def main(cate, exchange, underlying, dividend=True):
+def main(cate, exchange, underlying, dividend=True, is_fit=True):
     call_codes, put_codes, all_codes, dates = get_codes(cate, exchange, underlying, dividend)
     dates_label = ',,'.join(dates).split(',')
     call_x, call_ys, put_x, put_ys = get_data(call_codes, put_codes, all_codes)
-    xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
+    if is_fit:
+        xx, call_y2, put_y2 = fit(call_x, call_ys[-1], put_x, put_ys[-1])
+    else:
+        xx, call_y2, put_y2 = not_fit(call_x, call_ys[-1], put_x, put_ys[-1])
     yy = list(range(len(call_y2)))
     x, y = meshgrid(xx, yy)
     fig = plt.figure(figsize=(12, 5.7))
@@ -224,7 +262,7 @@ def main(cate, exchange, underlying, dividend=True):
     ax_iv_sf_put.set_zlabel('Implied Volatility')
     ax_iv_sf_put.set_title('Put Option')
     plt.tight_layout()
-    thread = Thread(target=update, args=(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_iv_sf_call, ax_iv_sf_put))
+    thread = Thread(target=update, args=(call_codes, put_codes, all_codes, x, y, yy, surf_call, surf_put, ax_iv_sf_call, ax_iv_sf_put, is_fit))
     thread.setDaemon(True)
     thread.start()
     plt.show()
@@ -235,4 +273,4 @@ if __name__ == '__main__':
     underlying_security = '510050'
     # category = '300ETF'
     # underlying_security = '510300'
-    main(cate=category, exchange='null', underlying=underlying_security, dividend=False)
+    main(cate=category, exchange='null', underlying=underlying_security, dividend=False, is_fit=True)

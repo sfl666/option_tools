@@ -3,6 +3,7 @@ Author: shifulin
 Email: shifulin666@qq.com
 """
 import math
+from io import BytesIO
 import numpy as np
 import matplotlib.pyplot as plt
 from sina_stock_kline_api import get_stock_day_kline, get_ex_data
@@ -16,25 +17,20 @@ ETF_SPOT_MAP = {
 }
 
 
-def get_stock_data(code):
+def cal_stock_fluctuation(code, kline, ex):
     x, y = [], []
-    kline_data = get_stock_day_kline(code)
+    kline_data = kline[code]
     for index, i in enumerate(kline_data):
         if index > 0:
             y.append(math.log(i['close'] / kline_data[index - 1]['close']))
             x.append(int(''.join(i['date'][:10].split('-'))))
-    # print(x)
-    # print(y)
     if code in ETF_SPOT_MAP:
         listed_date = int(''.join(kline_data[0]['date'][:10].split('-')))
-        # ex_data = get_ex_data(code)
-        ex_date = [int(''.join(i['djr'][:10].split('-'))) for i in get_ex_data(code) if i['djr']]
+        ex_date = [int(''.join(i['djr'][:10].split('-'))) for i in ex[code] if i['djr']]
         ex_date = [i for i in ex_date if i > listed_date][::-1]
-        # print(ex_date)
-        # print(listed_date)
         ex_result = {}
         if ex_date:
-            spot_kline = get_stock_day_kline(ETF_SPOT_MAP[code])
+            spot_kline = kline[ETF_SPOT_MAP[code]]
             last_date, last_close = 0, 0.0
             for index, i in enumerate(spot_kline):
                 this_date = int(''.join(i['date'][:10].split('-')))
@@ -54,9 +50,16 @@ def get_stock_data(code):
     return x, y
 
 
-def get_future_data(code):
+def get_stock_data(code):
+    kline = {code: get_stock_day_kline(code)}
+    if code in ETF_SPOT_MAP:
+        kline[ETF_SPOT_MAP[code]] = get_stock_day_kline(ETF_SPOT_MAP[code])
+    ex = {code: get_ex_data(code)}
+    return cal_stock_fluctuation(code, kline, ex)
+
+
+def cal_future_fluctuation(kline):
     x, y = [], []
-    kline = get_future_day_kline(code)
     if kline:
         last_close = float(kline[0]['c'])
         for k in kline[1:]:
@@ -64,9 +67,11 @@ def get_future_data(code):
             close = float(k['c'])
             y.append(math.log(close / last_close))
             last_close = close
-    # print(x)
-    # print(y)
     return x, y
+
+
+def get_future_data(code):
+    return cal_future_fluctuation(get_future_day_kline(code))
 
 
 def cal_historical_volatility(y, window_size):
@@ -80,30 +85,7 @@ def cal_historical_volatility(y, window_size):
     return hv_lines, hv_cone
 
 
-def main(code, security_type='stock', window_size=(5, 15, 30, 50, 70, 90, 120, 150)):
-    # import pickle, os
-    # if os.path.isfile('cache'):
-    #     with open('cache', 'rb') as fp:
-    #         x = pickle.load(fp)
-    #         y = pickle.load(fp)
-    #         hv_lines = pickle.load(fp)
-    #         hv_cone = pickle.load(fp)
-    # else:
-    #     x, y = get_stock_data(code)
-    #     hv_lines, hv_cone = cal_historical_volatility(y, window_size)
-    #     with open('cache', 'wb') as fp:
-    #         pickle.dump(x, fp)
-    #         pickle.dump(y, fp)
-    #         pickle.dump(hv_lines, fp)
-    #         pickle.dump(hv_cone, fp)
-    if security_type == 'stock':
-        x, y = get_stock_data(code)
-        interval = 100
-    elif security_type == 'future':
-        x, y = get_future_data(code)
-        interval = 10
-    else:
-        return
+def draw_picture(code, x, y, interval, window_size, show=True):
     hv_lines, hv_cone = cal_historical_volatility(y, window_size)
     x_int = list(range(len(x)))
     len_window = len(window_size)
@@ -135,10 +117,43 @@ def main(code, security_type='stock', window_size=(5, 15, 30, 50, 70, 90, 120, 1
     axs2[1].set_ylabel('historical volatility(%)')
     axs2[1].set_xlabel(f'historical volatility of {code} in different window size')
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png')
+        return buffer.getvalue()
+
+
+def main(code, security_type='stock', window_size=(5, 15, 30, 50, 70, 90, 120, 150)):
+    # import pickle, os
+    # if os.path.isfile('cache'):
+    #     with open('cache', 'rb') as fp:
+    #         x = pickle.load(fp)
+    #         y = pickle.load(fp)
+    #         hv_lines = pickle.load(fp)
+    #         hv_cone = pickle.load(fp)
+    # else:
+    #     x, y = get_stock_data(code)
+    #     hv_lines, hv_cone = cal_historical_volatility(y, window_size)
+    #     with open('cache', 'wb') as fp:
+    #         pickle.dump(x, fp)
+    #         pickle.dump(y, fp)
+    #         pickle.dump(hv_lines, fp)
+    #         pickle.dump(hv_cone, fp)
+    if security_type == 'stock':
+        x, y = get_stock_data(code)
+        interval = 100
+    elif security_type == 'future':
+        x, y = get_future_data(code)
+        interval = 10
+    else:
+        return
+    draw_picture(code, x, y, interval, window_size, show=True)
 
 
 if __name__ == '__main__':
     # main('sz159919')
-    main('M2005', security_type='future', window_size=(5, 15, 30, 50, 90, 120))
+    # main('sh000300')
+    main('m2005', security_type='future', window_size=(5, 15, 30, 50, 90, 120))
 
