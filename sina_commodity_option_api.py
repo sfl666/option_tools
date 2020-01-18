@@ -17,6 +17,7 @@ PIN_ZHONG_PARAMS = {
     'ru': {'product': 'ru_o', 'exchange': 'shfe'},
     'cu': {'product': 'cu_o', 'exchange': 'shfe'},
     'au': {'product': 'au_o', 'exchange': 'shfe'},
+    'rm': {'product': 'rm', 'exchange': 'czce'},
 }
 URL_T_QUOTATION = "http://stock.finance.sina.com.cn/futures/api/openapi.php/OptionService.getOptionData?" \
                   "type=futures&product={product}&exchange={exchange}&pinzhong={code}"

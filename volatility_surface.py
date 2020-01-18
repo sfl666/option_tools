@@ -246,6 +246,7 @@ def main(cate, exchange, underlying, dividend=True, is_fit=True):
     ax_iv_sf_call = fig.add_subplot(gs[:2, :2], projection='3d')
     ax_iv_sf_call.view_init(ELEV, AZIM)
     # surf_call = ax_iv_sf_call.plot_surface(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
+    # print(x.shape, y.shape, array(call_y2).shape)
     surf_call = ax_iv_sf_call.plot_wireframe(x, y, array(call_y2), rstride=1, cstride=1, cmap='rainbow')
     ax_iv_sf_call.set_yticklabels(dates_label)
     ax_iv_sf_call.set_xlabel('Strike Price')

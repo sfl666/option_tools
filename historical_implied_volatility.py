@@ -14,7 +14,8 @@ from sina_stock_kline_api import get_stock_day_kline
 from sina_future_kline_api import get_future_day_kline
 from sina_commodity_option_api import get_option_kline as get_future_option_day_kline
 from sina_etf_option_api import get_option_day_kline as get_etf_option_day_kline
-from european_option import call_iv, put_iv
+import european_option
+import american_option
 
 
 ETF_SPOT_CODE = {
@@ -104,9 +105,9 @@ def align_kline(option_kline, spot_kline, window_size):
 
 def cal_historical_iv(option_kline, spot_kline, strike_price, expiry_date, r, option_type, exercise_type):
     if exercise_type == 'european':
-        iv_func = call_iv if option_type == 'call' else put_iv
+        iv_func = european_option.call_iv if option_type == 'call' else european_option.put_iv
     else:
-        pass
+        iv_func = american_option.call_iv if option_type == 'call' else american_option.put_iv
     x, y = [], []
     for option, spot in zip(option_kline, spot_kline):
         x.append(str(option[0]))
@@ -156,6 +157,8 @@ def main(option_code, spot_code, strike_price, expiry_date, option_type, exercis
 
 
 if __name__ == '__main__':
-    main('cu2003C51000', 'cu2003', 51000.0, '20200224', 'call', 'european', 5)
+    # main('cu2003C51000', 'cu2003', 51000.0, '20200224', 'call', 'european', 5)
     # main('au2004P340', 'au2004', 340.0, '20200325', 'put', 'european', 10)
     # main('10002062', '510050', 3.0, '20200122', 'put', 'european', 20)
+    # main('m2005C2800', 'm2005', 2800.0, '20200408', 'call', 'american', 5)
+    main('m2005P2700', 'm2005', 2700.0, '20200408', 'put', 'american', 10)
