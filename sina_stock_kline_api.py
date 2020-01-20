@@ -3,6 +3,9 @@ Author: shifulin
 Email: shifulin666@qq.com
 """
 # 股票K线接口代码copy自AkShare项目https://github.com/jindaxiang/akshare
+import re
+import base64
+import struct
 import requests
 import execjs
 
@@ -316,12 +319,52 @@ def get_ex_data(code):
     return data
 
 
+def get_1minutes():
+    t = [('9:30:00', '11:30:00'), ('13:00:00', '15:00:00')]
+    res, result = [], []
+    for begin, end in t:
+        b = begin.split(':')
+        b = int(b[0]) * 60 + int(b[1])
+        e = end.split(':')
+        e = int(e[0]) * 60 + int(e[1])
+        res.extend(list(range(b, e + 1)))
+    for index, i in enumerate(res):
+        hour, minute = divmod(i, 60)
+        result.append(':'.join([str(hour).rjust(2, '0'), str(minute).rjust(2, '0'), '00']))
+    return result
+
+
+def get_stock_time_line(code):
+    """股票分时线（1分钟线）"""
+    minutes = get_1minutes()
+    content = requests.get(f'http://hq.sinajs.cn/list=ml_{code}').content.decode()
+    patt = re.compile(r'\"(.*)\"')
+    m = patt.search(content)
+    start = m.start() + 1
+    end = m.end() - 1
+    result = []
+    n = 0
+    while start < end:
+        tmp = (content[start:start+16])
+        start += 16
+        b = base64.b64decode(tmp)
+        avg = struct.unpack('<L', bytes(b[:4]))[0] / 1000.0
+        price = struct.unpack('<L', bytes(b[4:8]))[0] / 1000.0
+        amount = struct.unpack('<L', bytes(b[8:12]))[0]
+        if price < 1000000.0:
+            result.append((avg, price, amount, minutes[n]))
+            n += 1
+    return result
+
+
 def my_test():
-    kline = get_stock_day_kline('sh510050')
-    for i in kline:
+    # kline = get_stock_day_kline('sh510050')
+    # for i in kline:
+    #     print(i)
+    for i in get_stock_time_line('sz000009'):
         print(i)
 
 
 if __name__ == '__main__':
-    # my_test()
-    get_ex_data('sh510050')
+    my_test()
+    # get_ex_data('sh510050')

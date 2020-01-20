@@ -2,6 +2,7 @@
 Author: shifulin
 Email: shifulin666@qq.com
 """
+import time
 import math
 import datetime
 from io import BytesIO
@@ -13,7 +14,10 @@ import matplotlib.pyplot as plt
 from sina_stock_kline_api import get_stock_day_kline
 from sina_future_kline_api import get_future_day_kline
 from sina_commodity_option_api import get_option_kline as get_future_option_day_kline
+from sina_commodity_option_api import get_underlying_price
+from sina_commodity_option_api import get_option_price as get_future_option_price
 from sina_etf_option_api import get_option_day_kline as get_etf_option_day_kline
+from sina_etf_option_api import get_option_price as get_etf_option_price
 import european_option
 import american_option
 
@@ -116,7 +120,7 @@ def cal_historical_iv(option_kline, spot_kline, strike_price, expiry_date, r, op
     return x, y
 
 
-def draw_picture(option_code, x, iv, hv, show=True):
+def draw_picture(option_code, x, iv, hv, last_iv, show=True):
     # print(len(x), len(iv), len(hv))
     interval = math.ceil(len(x) / 20)
     x_index = list(range(len(x)))[::-interval]
@@ -126,13 +130,14 @@ def draw_picture(option_code, x, iv, hv, show=True):
     for ax in axs[0: 2]:
         ax.remove()
     ax0 = fig.add_subplot(gs[0: 2], sharex=axs[2])
-    ax0.plot(iv)
-    ax0.plot(hv)
+    ax0.axhline(last_iv, color='purple', linestyle='--')
+    ax0.plot(hv, 'darkorange')
+    ax0.plot(iv, 'b', lw=2)
     ax0.set_xlim((0, len(x) - 1))
     ax0.grid()
     ax0.set_title(option_code)
     plt.setp(ax0.get_xticklabels(), visible=False)
-    ax0.legend(['implied volatility', 'historical volatility'])
+    ax0.legend(['now iv', 'historical volatility', 'implied volatility'])
     axs[2].axhline(0, color='k', lw=1)
     axs[2].plot(np.array(hv) - np.array(iv), 'r')
     axs[2].set_xticks(x_index[::-1])
@@ -149,16 +154,38 @@ def draw_picture(option_code, x, iv, hv, show=True):
         return buffer.getvalue()
 
 
+def get_last_price(option_code, spot_code):
+    if spot_code in STOCK_SPOT_CODE:
+        spot_price = float(get_underlying_price(STOCK_SPOT_CODE[spot_code])[3])
+        option_price = float(get_etf_option_price(option_code)[2][1])
+    else:
+        spot_price = float(get_underlying_price(spot_code.upper())[8])
+        option_price = float(get_future_option_price(option_code)[2])
+    return option_price, spot_price
+
+
+def get_last_iv(option_price, spot_price, strike_price, expiry_date, option_type, exercise_type):
+    today = time.strftime('%Y%m%d', time.localtime(time.time()))
+    t = days_interval(today, expiry_date)[1]
+    if exercise_type == 'european':
+        iv_func = european_option.call_iv if option_type == 'call' else european_option.put_iv
+    else:
+        iv_func = american_option.call_iv if option_type == 'call' else american_option.put_iv
+    return iv_func(option_price, spot_price, strike_price, t)
+
+
 def main(option_code, spot_code, strike_price, expiry_date, option_type, exercise_type, window_size):
     option_kline, spot_kline = get_kline(option_code, spot_code)
     op_k, sp_k, hv = align_kline(option_kline, spot_kline, window_size=window_size)
     x, iv = cal_historical_iv(op_k, sp_k, strike_price, expiry_date, 0.03, option_type, exercise_type)
-    draw_picture(option_code, x, iv, hv)
+    option_price, spot_price = get_last_price(option_code, spot_code)
+    last_iv = get_last_iv(option_price, spot_price, strike_price, expiry_date, option_type, exercise_type)
+    draw_picture(option_code, x, iv, hv, last_iv)
 
 
 if __name__ == '__main__':
     # main('cu2003C51000', 'cu2003', 51000.0, '20200224', 'call', 'european', 5)
     # main('au2004P340', 'au2004', 340.0, '20200325', 'put', 'european', 10)
-    # main('10002062', '510050', 3.0, '20200122', 'put', 'european', 20)
+    main('10002062', '510050', 3.0, '20200122', 'put', 'european', 15)
     # main('m2005C2800', 'm2005', 2800.0, '20200408', 'call', 'american', 5)
-    main('m2005P2700', 'm2005', 2700.0, '20200408', 'put', 'american', 10)
+    # main('m2005P2700', 'm2005', 2700.0, '20200408', 'put', 'american', 10)
