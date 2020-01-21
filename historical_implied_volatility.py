@@ -19,7 +19,8 @@ from sina_commodity_option_api import get_option_price as get_future_option_pric
 from sina_etf_option_api import get_option_day_kline as get_etf_option_day_kline
 from sina_etf_option_api import get_option_price as get_etf_option_price
 import european_option
-import american_option
+# import american_option
+import baw
 
 
 ETF_SPOT_CODE = {
@@ -111,7 +112,7 @@ def cal_historical_iv(option_kline, spot_kline, strike_price, expiry_date, r, op
     if exercise_type == 'european':
         iv_func = european_option.call_iv if option_type == 'call' else european_option.put_iv
     else:
-        iv_func = american_option.call_iv if option_type == 'call' else american_option.put_iv
+        iv_func = baw.call_iv if option_type == 'call' else baw.put_iv
     x, y = [], []
     for option, spot in zip(option_kline, spot_kline):
         x.append(str(option[0]))
@@ -170,7 +171,7 @@ def get_last_iv(option_price, spot_price, strike_price, expiry_date, option_type
     if exercise_type == 'european':
         iv_func = european_option.call_iv if option_type == 'call' else european_option.put_iv
     else:
-        iv_func = american_option.call_iv if option_type == 'call' else american_option.put_iv
+        iv_func = baw.call_iv if option_type == 'call' else baw.put_iv
     return iv_func(option_price, spot_price, strike_price, t)
 
 
@@ -186,6 +187,6 @@ def main(option_code, spot_code, strike_price, expiry_date, option_type, exercis
 if __name__ == '__main__':
     # main('cu2003C51000', 'cu2003', 51000.0, '20200224', 'call', 'european', 5)
     # main('au2004P340', 'au2004', 340.0, '20200325', 'put', 'european', 10)
-    main('10002062', '510050', 3.0, '20200122', 'put', 'european', 15)
+    # main('10002062', '510050', 3.0, '20200122', 'put', 'european', 15)
     # main('m2005C2800', 'm2005', 2800.0, '20200408', 'call', 'american', 5)
-    # main('m2005P2700', 'm2005', 2700.0, '20200408', 'put', 'american', 10)
+    main('m2005P2700', 'm2005', 2700.0, '20200408', 'put', 'american', 5)

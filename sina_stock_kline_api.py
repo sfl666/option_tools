@@ -319,8 +319,8 @@ def get_ex_data(code):
     return data
 
 
-def get_1minutes():
-    t = [('9:30:00', '11:30:00'), ('13:00:00', '15:00:00')]
+def get_1minutes(t=(('9:30:00', '11:30:00'), ('13:00:00', '15:00:00'))):
+    # t = [('9:30:00', '11:30:00'), ('13:00:00', '15:00:00')]
     res, result = [], []
     for begin, end in t:
         b = begin.split(':')
