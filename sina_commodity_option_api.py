@@ -32,7 +32,8 @@ def get_t_quotation(code):
     """获取T型报价数据"""
     p = ''.join(filter(str.isalpha, code))
     data = requests.get(URL_T_QUOTATION.format(code=code, **PIN_ZHONG_PARAMS[p])).json()['result']['data']
-    up, down = data['up'], data['down']
+    up = data['up'] if 'up' in data else []
+    down = data['down'] if 'down' in data else []
     for i in down:
         s = []
         for j in i[-1][::-1]:

@@ -54,7 +54,9 @@ def get_stock_data(code):
     kline = {code: get_stock_day_kline(code)}
     if code in ETF_SPOT_MAP:
         kline[ETF_SPOT_MAP[code]] = get_stock_day_kline(ETF_SPOT_MAP[code])
-    ex = {code: get_ex_data(code)}
+        ex = {code: get_ex_data(code)}
+    else:
+        ex = {code: []}
     return cal_stock_fluctuation(code, kline, ex)
 
 
@@ -81,7 +83,7 @@ def cal_historical_volatility(y, window_size):
     for w in window_size:
         hv = [np.std(y2[i: i + w]) * factor for i in range(len(y2) - w + 1)]
         hv_lines.append(hv)
-        hv_cone.append((max(hv), np.percentile(hv, 75), np.median(hv), np.percentile(hv, 25), min(hv), hv[0]))
+        # hv_cone.append((max(hv), np.percentile(hv, 75), np.median(hv), np.percentile(hv, 25), min(hv), hv[0]))
     return hv_lines, hv_cone
 
 
@@ -143,12 +145,11 @@ def main(code, security_type='stock', window_size=(5, 15, 30, 50, 70, 90, 120, 1
     #         pickle.dump(hv_cone, fp)
     if security_type == 'stock':
         x, y = get_stock_data(code)
-        interval = 100
     elif security_type == 'future':
         x, y = get_future_data(code)
-        interval = 10
     else:
         return
+    interval = math.ceil(len(x) / 20)
     draw_picture(code, x, y, interval, window_size, show=True)
 
 
