@@ -126,7 +126,7 @@ def draw_picture(option_code, x, iv, hv, last_iv, show=True):
     interval = math.ceil(len(x) / 20)
     x_index = list(range(len(x)))[::-interval]
     x_label = x[::-interval]
-    fig, axs = plt.subplots(3, sharex=True, gridspec_kw={'hspace': 0})
+    fig, axs = plt.subplots(3, sharex=True, gridspec_kw={'hspace': 0}, figsize=(12.0, 5.7))
     gs = axs[0].get_gridspec()
     for ax in axs[0: 2]:
         ax.remove()

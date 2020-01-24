@@ -52,7 +52,7 @@ def cal_iv(option_price, spot_price, k, t, option_type):
 def draw_picture(times, option_price, spot_price, iv, option_code, show=True):
     interval = math.ceil(len(times) / 20.0)
     x = list(range(len(times)))
-    fig, axs = plt.subplots(2, sharex=True, gridspec_kw={'hspace': 0})
+    fig, axs = plt.subplots(2, sharex=True, gridspec_kw={'hspace': 0}, figsize=(12.0, 5.7))
     axs[0].plot(iv, color='r')
     axs[0].set_xlim((x[0], x[-1]))
     axs[0].set_ylabel('Implied Volatility')
