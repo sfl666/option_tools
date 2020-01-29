@@ -7,7 +7,7 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 from sina_etf_option_api import get_option_time_line as get_etf_option_time_line
 from sina_stock_kline_api import get_stock_time_line, get_1minutes
-import european_option
+import european_option as european_option
 
 
 SPOT_CODE_MAP = {
@@ -39,14 +39,15 @@ def align_line(option_line, spot_line):
             option_time = time_str_to_int(option_line[index]['i'])
         if spot_time == option_time:
             times.append(i[3])
-            spot_price.append(i[1])
-            option_price.append(float(option_line[index]['p']))
+            spot_price.append(i[1] if i[1] > 0.00001 else math.nan)
+            tmp_price = float(option_line[index]['p'])
+            option_price.append(tmp_price if tmp_price > 0.00001 else math.nan)
     return times, option_price, spot_price
 
 
 def cal_iv(option_price, spot_price, k, t, option_type):
     iv_func = european_option.call_iv if option_type == 'Call' else european_option.put_iv
-    return [iv_func(i, j, k, t) for i, j in zip(option_price, spot_price)]
+    return [iv_func(i, j, k, t) if (i > 0.00001 and j > 0.00001) else math.nan for i, j in zip(option_price, spot_price)]
 
 
 def draw_picture(times, option_price, spot_price, iv, option_code, show=True):
@@ -88,5 +89,5 @@ def main(option_code, spot_code, k, t, option_type, show=True):
 
 
 if __name__ == '__main__':
-    main('10002090', '510050', 3.1, 155.0 / 365.0, 'Call')
+    main('10002235', '510050', 3.0, 238.0 / 365.0, 'Call')
 

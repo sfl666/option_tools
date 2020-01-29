@@ -2,22 +2,17 @@
 Author: shifulin
 Email: shifulin666@qq.com
 """
-import time
 import math
 import datetime
 from io import BytesIO
 from copy import deepcopy
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 from sina_stock_kline_api import get_stock_day_kline
 from sina_future_kline_api import get_future_day_kline
 from sina_commodity_option_api import get_option_kline as get_future_option_day_kline
-from sina_commodity_option_api import get_underlying_price
-from sina_commodity_option_api import get_option_price as get_future_option_price
 from sina_etf_option_api import get_option_day_kline as get_etf_option_day_kline
-from sina_etf_option_api import get_option_price as get_etf_option_price
 import european_option
 # import american_option
 import baw
@@ -26,11 +21,11 @@ import baw
 ETF_SPOT_CODE = {
     '510050': 'sh510050',
     '510300': 'sh510300',
+    '159919': 'sz159919',
 }
 
 STOCK_SPOT_CODE = deepcopy(ETF_SPOT_CODE)
 STOCK_SPOT_CODE.update({
-    '159919': 'sz159919',
     '000300': 'sh000300',
 })
 
@@ -54,17 +49,7 @@ def get_kline(option_code, spot_code):
     return option_kline, spot_kline
 
 
-def cal_hv(y, window_size):
-    len_y = len(y)
-    if len_y >= window_size:
-        factor = math.sqrt(252)
-        hv = [np.std(y[i: i + window_size]) * factor for i in range(len(y) - window_size + 1)]
-        return [np.nan for _ in range(window_size)] + hv
-    else:
-        return [np.nan for _ in range(len_y + 1)]
-
-
-def align_kline(option_kline, spot_kline, window_size):
+def align_kline(option_kline, spot_kline):
     if not option_kline or not spot_kline:
         return [], []
     else:
@@ -77,76 +62,64 @@ def align_kline(option_kline, spot_kline, window_size):
             date_key, close_key, date_func = 'd', 'c', lambda x: int(''.join(x.split('-')))
         else:
             date_key, close_key, date_func = 'date', 'close', lambda x: int(''.join(x[:10].split('-')))
-        tmp_hv, last_close = [], None
-        for i in spot_kline:
-            this_close = float(i[close_key])
-            if last_close is not None:
-                tmp_hv.append(math.log(this_close / last_close))
-            last_close = this_close
-        hv = cal_hv(tmp_hv, window_size)
-        spot_data, spot_hv = [], []
+        spot_data, option_data2 = [], []
         len_option_data = len(option_data)
         index = 0
-        for k, h in zip(spot_kline, hv):
+        for k in spot_kline:
             k_date = date_func(k[date_key])
             op_date = option_data[index][0]
             while k_date > op_date:
                 # print(f'Warning, miss option kline date: {k_date}', option_data[index])
-                del option_data[index]
-                len_option_data -= 1
+                index += 1
                 op_date = option_data[index][0]
             if k_date == op_date:
                 spot_data.append((k_date, float(k[close_key])))
-                spot_hv.append(h)
+                option_data2.append(option_data[index])
                 index += 1
-            else:
-                if index >= len_option_data:
-                    break
+            if index >= len_option_data:
+                break
         # print(option_data)
         # print(spot_data)
-        assert len_option_data == len(spot_data)
-        return option_data, spot_data, spot_hv
+        return option_data2, spot_data
 
 
 def cal_historical_iv(option_kline, spot_kline, strike_price, expiry_date, r, option_type, exercise_type):
     if exercise_type == 'european':
-        iv_func = european_option.call_iv if option_type == 'call' else european_option.put_iv
+        iv_func = european_option.call_iv if option_type == 'Call' else european_option.put_iv
     else:
-        iv_func = baw.call_iv if option_type == 'call' else baw.put_iv
-    x, y = [], []
+        iv_func = baw.call_iv if option_type == 'Call' else baw.put_iv
+    x, y, option_cp, spot_cp = [], [], [], []
     for option, spot in zip(option_kline, spot_kline):
         x.append(str(option[0]))
         t = days_interval(option[0], expiry_date)[1]
         y.append(iv_func(option[1], spot[1], strike_price, t, r=r))
-    return x, y
+        option_cp.append(option[1])
+        spot_cp.append(spot[1])
+    return x, y, option_cp, spot_cp
 
 
-def draw_picture(option_code, x, iv, hv, last_iv, show=True):
-    # print(len(x), len(iv), len(hv))
+def draw_picture(option_code, x, iv, option_cp, spot_cp, show=True):
     interval = math.ceil(len(x) / 20)
-    x_index = list(range(len(x)))[::-interval]
+    real_x = list(range(len(x)))
+    x_index = real_x[::-interval]
     x_label = x[::-interval]
-    fig, axs = plt.subplots(3, sharex=True, gridspec_kw={'hspace': 0}, figsize=(12.0, 5.7))
-    gs = axs[0].get_gridspec()
-    for ax in axs[0: 2]:
-        ax.remove()
-    ax0 = fig.add_subplot(gs[0: 2], sharex=axs[2])
-    ax0.axhline(last_iv, color='purple', linestyle='--')
-    ax0.plot(hv, 'darkorange')
-    ax0.plot(iv, 'b', lw=2)
-    ax0.set_xlim((0, len(x) - 1))
-    ax0.grid()
-    ax0.set_title(option_code)
-    plt.setp(ax0.get_xticklabels(), visible=False)
-    ax0.legend(['now iv', 'historical volatility', 'implied volatility'])
-    axs[2].axhline(0, color='k', lw=1)
-    axs[2].plot(np.array(hv) - np.array(iv), 'r')
-    axs[2].set_xticks(x_index[::-1])
-    axs[2].set_xticklabels(x_label[::-1], rotation=60)
-    axs[2].set_xlim((0, len(x) - 1))
-    axs[2].set_ylabel('hv - iv')
-    axs[2].grid()
-    fig.tight_layout()
+    fig, axs = plt.subplots(2, sharex=True, gridspec_kw={'hspace': 0}, figsize=(12.0, 5.7))
+    axs[0].plot(iv, color='r')
+    axs[0].set_xlim((real_x[0], real_x[-1]))
+    axs[0].set_ylabel('Implied Volatility')
+    axs[0].set_title(option_code)
+    axs[0].grid()
+    line1 = axs[1].plot(option_cp, 'blue', label='option')
+    ax2 = axs[1].twinx()
+    line2 = ax2.plot(spot_cp, 'orange', label='spot')
+    axs[1].set_xticks(x_index[::-1])
+    axs[1].set_xticklabels(x_label[::-1], rotation=60)
+    axs[1].set_ylabel('Price')
+    axs[1].grid()
+    lines = line1 + line2
+    line_labels = [i.get_label() for i in lines]
+    axs[1].legend(lines, line_labels, loc=0)
+    plt.tight_layout()
     if show:
         plt.show()
     else:
@@ -155,38 +128,18 @@ def draw_picture(option_code, x, iv, hv, last_iv, show=True):
         return buffer.getvalue()
 
 
-def get_last_price(option_code, spot_code):
-    if spot_code in STOCK_SPOT_CODE:
-        spot_price = float(get_underlying_price(STOCK_SPOT_CODE[spot_code])[3])
-        option_price = float(get_etf_option_price(option_code)[2][1])
-    else:
-        spot_price = float(get_underlying_price(spot_code.upper())[8])
-        option_price = float(get_future_option_price(option_code)[2])
-    return option_price, spot_price
-
-
-def get_last_iv(option_price, spot_price, strike_price, expiry_date, option_type, exercise_type):
-    today = time.strftime('%Y%m%d', time.localtime(time.time()))
-    t = days_interval(today, expiry_date)[1]
-    if exercise_type == 'european':
-        iv_func = european_option.call_iv if option_type == 'call' else european_option.put_iv
-    else:
-        iv_func = baw.call_iv if option_type == 'call' else baw.put_iv
-    return iv_func(option_price, spot_price, strike_price, t)
-
-
-def main(option_code, spot_code, strike_price, expiry_date, option_type, exercise_type, window_size):
+def main(option_code, spot_code, strike_price, expiry_date, option_type, exercise_type):
     option_kline, spot_kline = get_kline(option_code, spot_code)
-    op_k, sp_k, hv = align_kline(option_kline, spot_kline, window_size=window_size)
-    x, iv = cal_historical_iv(op_k, sp_k, strike_price, expiry_date, 0.03, option_type, exercise_type)
-    option_price, spot_price = get_last_price(option_code, spot_code)
-    last_iv = get_last_iv(option_price, spot_price, strike_price, expiry_date, option_type, exercise_type)
-    draw_picture(option_code, x, iv, hv, last_iv)
+    op_k, sp_k = align_kline(option_kline, spot_kline)
+    x, iv, option_cp, spot_cp = cal_historical_iv(op_k, sp_k, strike_price, expiry_date, 0.03, option_type, exercise_type)
+    draw_picture(option_code, x, iv, option_cp, spot_cp)
 
 
 if __name__ == '__main__':
-    # main('cu2003C51000', 'cu2003', 51000.0, '20200224', 'call', 'european', 5)
-    # main('au2004P340', 'au2004', 340.0, '20200325', 'put', 'european', 10)
-    # main('10002062', '510050', 3.0, '20200122', 'put', 'european', 15)
-    # main('m2005C2800', 'm2005', 2800.0, '20200408', 'call', 'american', 5)
-    main('m2005P2700', 'm2005', 2700.0, '20200408', 'put', 'american', 5)
+    # main('cu2003C51000', 'cu2003', 51000.0, '20200224', 'Call', 'european')
+    # main('au2004P340', 'au2004', 340.0, '20200325', 'Put', 'european')
+    # main('io2002C4050', '000300', 4050.0, '20200221', 'Call', 'european')
+    # main('10002194', '510050', 3.1, '20200226', 'Call', 'european')
+    # main('m2005C2800', 'm2005', 2800.0, '20200408', 'Call', 'american')
+    main('m2005P2600', 'm2005', 2600.0, '20200408', 'Put', 'american')
+    # main('ta2005P4800', 'ta2005', 4800.0, '20200403', 'Put', 'american')
