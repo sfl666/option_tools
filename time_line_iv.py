@@ -31,11 +31,13 @@ def align_line(option_line, spot_line):
     if not option_line or not spot_line:
         return times, option_price, spot_price
     index = 0
+    len_option_line = len(option_line)
     for i in spot_line:
         spot_time = time_str_to_int(i[3])
         option_time = time_str_to_int(option_line[index]['i'])
-        while spot_time > option_time:
+        while spot_time > option_time and index < len_option_line - 1:
             index += 1
+            # print('#########', len(option_line), len(spot_line), index)
             option_time = time_str_to_int(option_line[index]['i'])
         if spot_time == option_time:
             times.append(i[3])
