@@ -84,10 +84,13 @@ def main(option_code, spot_code, k, t, option_type, show=True):
     if spot_code in SPOT_CODE_MAP:
         spot_code = SPOT_CODE_MAP[spot_code]
     else:
-        return ''
+        return None
     times, option_price, spot_price = align_line(*get_data(option_code, spot_code))
-    iv = cal_iv(option_price, spot_price, k, t, option_type)
-    return draw_picture(times, option_price, spot_price, iv, option_code, show)
+    if times:
+        iv = cal_iv(option_price, spot_price, k, t, option_type)
+        return draw_picture(times, option_price, spot_price, iv, option_code, show)
+    else:
+        return None
 
 
 if __name__ == '__main__':
