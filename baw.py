@@ -38,7 +38,7 @@ def find_sx(sx, k, sigma, t, r, q, option_type):
                 * sx / q1 + sx - k) ** 2
 
 
-def baw_call(s, k, sigma, t, r, q):
+def baw_call(s, k, sigma, t, r, q=0.0):
     c = bsm_call(s, k, sigma, t, r, q)
     sx = opt.fmin(lambda i: find_sx(i, k, sigma, t, r, q, 'Call'), s)[0]
     d1 = (log(sx / k) + (r - q + sigma ** 2 / 2.0)) / (sigma * sqrt(t))
@@ -49,7 +49,7 @@ def baw_call(s, k, sigma, t, r, q):
     return c + a2 * (s / sx) ** q2 if s < sx else s - k
 
 
-def baw_put(s, k, sigma, t, r, q):
+def baw_put(s, k, sigma, t, r, q=0.0):
     p = bsm_put(s, k, sigma, t, r, q)
     sx = opt.fmin(lambda i: find_sx(i, k, sigma, t, r, q, 'Put'), s)[0]
     d1 = (log(sx / k) + (r - q + sigma ** 2 / 2.0)) / (sigma * sqrt(t))
@@ -60,7 +60,7 @@ def baw_put(s, k, sigma, t, r, q):
     return p + a1 * (s / sx) ** q1 if s > sx else k - s
 
 
-def call_iv(c, s, k, t, r=0.03, sigma_min=0.0001, sigma_max=1.0, e=0.00001):
+def call_iv(c, s, k, t, r=0.03, sigma_min=0.0001, sigma_max=3.0, e=0.00001):
     sigma_mid = (sigma_min + sigma_max) / 2.0
     call_min = bsm_call(s, k, sigma_min, t, r, 0.0)
     call_max = bsm_call(s, k, sigma_max, t, r, 0.0)
@@ -81,7 +81,7 @@ def call_iv(c, s, k, t, r=0.03, sigma_min=0.0001, sigma_max=1.0, e=0.00001):
     return sigma_mid
 
 
-def put_iv(c, s, k, t, r=0.03, sigma_min=0.0001, sigma_max=1.0, e=0.00001):
+def put_iv(c, s, k, t, r=0.03, sigma_min=0.0001, sigma_max=3.0, e=0.00001):
     sigma_mid = (sigma_min + sigma_max) / 2.0
     put_min = bsm_put(s, k, sigma_min, t, r, 0.0)
     put_max = bsm_put(s, k, sigma_max, t, r, 0.0)
@@ -100,6 +100,55 @@ def put_iv(c, s, k, t, r=0.03, sigma_min=0.0001, sigma_max=1.0, e=0.00001):
         put_mid = bsm_put(s, k, sigma_mid, t, r, 0.0)
         diff = c - put_mid
     return sigma_mid
+
+
+def delta(s, k, sigma, t, r, option_type):
+    if t == 0.0:
+        if s == k:
+            return 0.5 if option_type == 'Call' else -0.5
+        elif s > k:
+            return 1.0 if option_type == 'Call' else 0.0
+        else:
+            return 0.0 if option_type == 'Call' else -1.0
+    else:
+        price_func = baw_call if option_type == 'Call' else baw_put
+        return (price_func(s + 0.01, k, sigma, t, r) -
+                price_func(s - 0.01, k, sigma, t, r)) * 50.0
+
+
+def gamma(s, k, sigma, t, r, option_type):
+    if t == 0.0:
+        return inf if s == k else 0.0
+    price_func = baw_call if option_type == 'Call' else baw_put
+    return (price_func(s + 0.01, k, sigma, t, r) +
+            price_func(s - 0.01, k, sigma, t, r) -
+            price_func(s, k, sigma, t, r) * 2.0) * 10000.0
+
+
+def theta(s, k, sigma, t, r, option_type):
+    price_func = baw_call if option_type == 'Call' else baw_put
+    t_unit = 1.0 / 365.0
+    if t <= t_unit:
+        return price_func(s, k, sigma, 0.0001, r) - \
+               price_func(s, k, sigma, t, r)
+    else:
+        return price_func(s, k, sigma, t - t_unit, r) - \
+               price_func(s, k, sigma, t, r)
+
+
+def vega(s, k, sigma, t, r, option_type):
+    price_func = baw_call if option_type == 'Call' else baw_put
+    if sigma < 0.02:
+        return 0.0
+    else:
+        return (price_func(s, k, sigma + 0.01, t, r) -
+                price_func(s, k, sigma - 0.01, t, r)) * 50.0
+
+
+def rho(s, k, sigma, t, r, option_type):
+    price_func = baw_call if option_type == 'Call' else baw_put
+    return (price_func(s, k, sigma, t, r + 0.001,) -
+            price_func(s, k, sigma, t, r - 0.001,)) * 500.0
 
 
 if __name__ == '__main__':

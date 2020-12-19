@@ -80,7 +80,7 @@ def gamma(s, k, sigma, r, t, option_type, steps=100):
         return inf if s == k else 0.0
     price_func = {'Call': call_price, 'Put': put_price}[option_type]
     return (price_func(s + 0.01, k, sigma, r, t, steps=steps) +
-            price_func(s + 0.01, k, sigma, r, t, steps=steps) -
+            price_func(s - 0.01, k, sigma, r, t, steps=steps) -
             price_func(s, k, sigma, r, t, steps=steps) * 2.0) * 10000.0
 
 
@@ -110,7 +110,7 @@ def rho(s, k, sigma, r, t, option_type, steps=100):
             price_func(s, k, sigma, r - 0.001, t, steps=steps)) * 500.0
 
 
-def call_iv(c, s, k, t, r=0.03, sigma_min=0.01, sigma_max=1.0, e=0.00001, steps=100):
+def call_iv(c, s, k, t, r=0.03, sigma_min=0.01, sigma_max=3.0, e=0.00001, steps=100):
     sigma_mid = (sigma_min + sigma_max) / 2.0
     call_min = call_price(s, k, sigma_min, r, t, steps)
     call_max = call_price(s, k, sigma_max, r, t, steps)
@@ -132,7 +132,7 @@ def call_iv(c, s, k, t, r=0.03, sigma_min=0.01, sigma_max=1.0, e=0.00001, steps=
     return sigma_mid
 
 
-def put_iv(c, s, k, t, r=0.03, sigma_min=0.01, sigma_max=1.0, e=0.00001, steps=100):
+def put_iv(c, s, k, t, r=0.03, sigma_min=0.01, sigma_max=3.0, e=0.00001, steps=100):
     sigma_mid = (sigma_min + sigma_max) / 2.0
     put_min = put_price(s, k, sigma_min, r, t, steps)
     put_max = put_price(s, k, sigma_max, r, t, steps)
