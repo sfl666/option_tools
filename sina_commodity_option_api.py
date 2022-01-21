@@ -5,6 +5,14 @@ Email: shifulin666@qq.com
 import json
 import requests
 
+
+http_header = {
+    'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/97.0.4692.71 Safari/537.36",
+    'Referer': "https://stock.finance.sina.com.cn/",
+}
+
+
 PIN_ZHONG_PARAMS = {
     'io': {'product': 'io', 'exchange': 'cffex'},
     'm': {'product': 'm_o', 'exchange': 'dce'},
@@ -25,6 +33,7 @@ URL_KLINE = "https://stock.finance.sina.com.cn/futures/api/jsonp.php//" \
             "FutureOptionAllService.getOptionDayline?symbol={code}"
 URL_PRICE = "https://hq.sinajs.cn/etag.php?list=P_OP_{code}"
 URL_UNDERLYING_PRICE = "http://hq.sinajs.cn/list={code}"
+URL_UNDERLYING_PRICE2 = "http://hq.sinajs.cn/list=nf_{code}"
 URL_000300 = "http://hq.sinajs.cn/list=sh000300"
 
 
@@ -53,18 +62,23 @@ def get_option_kline(code):
 
 def get_option_price(code):
     """获取实时行情数据"""
-    data = requests.get(URL_PRICE.format(code=code)).content.split(b'"')[1].decode().split(',')
+    data = requests.get(URL_PRICE.format(code=code), headers=http_header).content.split(b'"')[1].decode().split(',')
     return data
 
 
 def get_underlying_price(code):
     """获取标的(期货)实时行情"""
-    return requests.get(URL_UNDERLYING_PRICE.format(code=code)).content.split(b'"')[1].decode('gbk').split(',')
+    return requests.get(URL_UNDERLYING_PRICE.format(code=code), headers=http_header).content.split(b'"')[1].decode('gbk').split(',')
+
+
+def get_underlying_price2(code):
+    """获取标的(期货)实时行情"""
+    return requests.get(URL_UNDERLYING_PRICE2.format(code=code), headers=http_header).content.split(b'"')[1].decode('gbk').split(',')
 
 
 def get_000300_price():
     """获取指数000300实时行情"""
-    return requests.get(URL_000300).content.split(b'"')[1].decode('gbk').split(',')
+    return requests.get(URL_000300, headers=http_header).content.split(b'"')[1].decode('gbk').split(',')
 
 
 def my_test():

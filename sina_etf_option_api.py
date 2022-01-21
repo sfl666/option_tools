@@ -5,6 +5,12 @@ Email: shifulin666@qq.com
 from json import loads
 from requests import get
 
+http_header = {
+    'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/97.0.4692.71 Safari/537.36",
+    'Referer': "https://stock.finance.sina.com.cn/",
+}
+
 
 def get_option_dates(cate='50ETF', exchange='null'):
     url = f"http://stock.finance.sina.com.cn/futures/api/openapi.php/StockOptionService.getStockName?" \
@@ -27,16 +33,16 @@ def get_option_expire_day(date, cate='50ETF', exchange='null'):
 def get_option_codes(date, underlying='510050'):
     url_up = ''.join(["http://hq.sinajs.cn/list=OP_UP_", underlying, str(date)[-4:]])
     url_down = ''.join(["http://hq.sinajs.cn/list=OP_DOWN_", underlying, str(date)[-4:]])
-    data_up = str(get(url_up).content).replace('"', ',').split(',')
+    data_up = str(get(url_up, headers=http_header).content).replace('"', ',').split(',')
     codes_up = [i[7:] for i in data_up if i.startswith('CON_OP_')]
-    data_down = str(get(url_down).content).replace('"', ',').split(',')
+    data_down = str(get(url_down, headers=http_header).content).replace('"', ',').split(',')
     codes_down = [i[7:] for i in data_down if i.startswith('CON_OP_')]
     return codes_up, codes_down
 
 
 def get_option_price(code):
     url = "http://hq.sinajs.cn/list=CON_OP_{code}".format(code=code)
-    data = get(url).content.decode('gbk')
+    data = get(url, headers=http_header).content.decode('gbk')
     data = data[data.find('"') + 1: data.rfind('"')].split(',')
     fields = ['买量', '买价', '最新价', '卖价', '卖量', '持仓量', '涨幅', '行权价', '昨收价', '开盘价', '涨停价',
               '跌停价', '申卖价五', '申卖量五', '申卖价四', '申卖量四', '申卖价三', '申卖量三', '申卖价二',
@@ -50,7 +56,7 @@ def get_option_price(code):
 
 def get_underlying_security_price(code='sh510050'):
     url = "http://hq.sinajs.cn/list=" + code
-    data = get(url).content.decode('gbk')
+    data = get(url, headers=http_header).content.decode('gbk')
     data = data[data.find('"') + 1: data.rfind('"')].split(',')
     fields = ['证券简称', '今日开盘价', '昨日收盘价', '最近成交价', '最高成交价', '最低成交价', '买入价',
               '卖出价', '成交数量', '成交金额', '买数量一', '买价位一', '买数量二', '买价位二', '买数量三',
@@ -62,7 +68,7 @@ def get_underlying_security_price(code='sh510050'):
 
 def get_option_greek_alphabet(code):
     url = "http://hq.sinajs.cn/list=CON_SO_{code}".format(code=code)
-    data = get(url).content.decode('gbk')
+    data = get(url, headers=http_header).content.decode('gbk')
     data = data[data.find('"') + 1: data.rfind('"')].split(',')
     fields = ['期权合约简称', '成交量', 'Delta', 'Gamma', 'Theta', 'Vega', '隐含波动率', '最高价', '最低价',
               '交易代码', '行权价', '最新价', '理论价值']

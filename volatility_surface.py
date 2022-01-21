@@ -15,6 +15,13 @@ from mpl_toolkits.mplot3d import Axes3D
 
 import sina_etf_option_api
 
+
+http_header = {
+    'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/97.0.4692.71 Safari/537.36",
+    'Referer': "https://stock.finance.sina.com.cn/",
+}
+
 COLORS = ['blue', 'yellow', 'lime', 'red', 'purple', 'slategray', 'tomato', 'orange', 'darkred', 'aqua']
 global_ax_lines_call = [{'ax': None, 'lines': []} for _ in range(5)]
 global_ax_lines_put = [{'ax': None, 'lines': []} for _ in range(5)]
@@ -27,7 +34,7 @@ def requests_get(all_codes):
     url = "http://hq.sinajs.cn/list={codes}".format(codes=all_codes)
     while True:
         try:
-            data = get(url).content.decode('gbk').strip().split('\n')
+            data = get(url, headers=http_header).content.decode('gbk').strip().split('\n')
             break
         except (exceptions.ConnectionError, exceptions.ConnectTimeout) as e:
             print('连接出错，10秒后重试')

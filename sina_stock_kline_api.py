@@ -9,6 +9,14 @@ import struct
 import requests
 import execjs
 
+
+http_header = {
+    'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/97.0.4692.71 Safari/537.36",
+    'Referer': "https://stock.finance.sina.com.cn/",
+}
+
+
 hk_js_decode = """
 function d(t) {
     var e, i, n, r, a, o, s, l = (arguments,
@@ -337,7 +345,7 @@ def get_1minutes(t=(('9:30:00', '11:30:00'), ('13:00:00', '15:00:00'))):
 def get_stock_time_line(code):
     """股票分时线（1分钟线）"""
     minutes = get_1minutes()
-    content = requests.get(f'http://hq.sinajs.cn/list=ml_{code}').content.decode()
+    content = requests.get(f'http://hq.sinajs.cn/list=ml_{code}', headers=http_header).content.decode()
     patt = re.compile(r'\"(.*)\"')
     m = patt.search(content)
     start = m.start() + 1
